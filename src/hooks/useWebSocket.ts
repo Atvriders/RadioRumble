@@ -24,6 +24,7 @@ export function useWebSocket(contestId: number | null) {
       unsubscribe();
       if (reconnectTimer.current) {
         clearTimeout(reconnectTimer.current);
+        reconnectTimer.current = null;
       }
       disconnect();
     };

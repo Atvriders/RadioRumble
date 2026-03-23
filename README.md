@@ -23,6 +23,40 @@ docker compose up -d
 
 Open `http://localhost:7373` in your browser.
 
+Pre-built multi-arch images (amd64, arm64, armv7) are pulled from GitHub Container Registry automatically.
+
+### Docker Commands
+
+```bash
+# Seed with sample contest data (optional — run inside the container)
+docker exec radiorumble node scripts/seed.js
+
+# View logs
+docker logs -f radiorumble
+
+# Update to latest version
+docker compose pull && docker compose up -d
+
+# Stop
+docker compose down
+```
+
+### docker-compose.yml
+
+```yaml
+services:
+  radiorumble:
+    image: ghcr.io/atvriders/radiorumble:latest
+    ports:
+      - "7373:7373"        # Web UI + API
+      - "2237:2237/udp"    # WSJT-X UDP ingest
+    volumes:
+      - ./data:/app/data   # SQLite database persistence
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+```
+
 ## Quick Start (without Docker)
 
 ```bash

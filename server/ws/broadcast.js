@@ -28,14 +28,18 @@ export class WsBroadcast {
    */
   broadcast(message) {
     const payload = typeof message === 'string' ? message : JSON.stringify(message);
+    const deadClients = [];
     for (const client of this.clients) {
       try {
         if (client.readyState === 1) { // WebSocket.OPEN
           client.send(payload);
         }
       } catch {
-        this.removeClient(client);
+        deadClients.push(client);
       }
+    }
+    for (const client of deadClients) {
+      this.removeClient(client);
     }
   }
 

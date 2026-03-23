@@ -31,12 +31,12 @@ export function gridToLatLon(grid) {
   let lat = latField + latSquare - 90;
 
   if (upper.length === 6) {
-    // Subsquare (third pair): A-X mapped to 0-23, each = 5 min lng / 2.5 min lat
-    const lngSub = (upper.charCodeAt(4) - 65) * (2 / 24);
-    const latSub = (upper.charCodeAt(5) - 65) * (1 / 24);
+    // Subsquare (third pair): A-X mapped to 0-23, each = 5/60 deg lng / 2.5/60 deg lat
+    const lngSub = (upper.charCodeAt(4) - 65) * (5 / 60);
+    const latSub = (upper.charCodeAt(5) - 65) * (2.5 / 60);
 
-    lng += lngSub + (1 / 24);   // center of subsquare
-    lat += latSub + (0.5 / 24);
+    lng += lngSub + (5 / 120);   // center of subsquare
+    lat += latSub + (2.5 / 120);
   } else {
     // Center of 4-char square
     lng += 1;   // half of 2 deg
@@ -77,8 +77,8 @@ export function latLonToGrid(lat, lng) {
   adjLat -= latSquare * 1;
 
   // Subsquare
-  const lngSub = Math.floor(adjLng / (2 / 24));
-  const latSub = Math.floor(adjLat / (1 / 24));
+  const lngSub = Math.floor(adjLng / (5 / 60));
+  const latSub = Math.floor(adjLat / (2.5 / 60));
 
   return (
     String.fromCharCode(65 + lngField) +

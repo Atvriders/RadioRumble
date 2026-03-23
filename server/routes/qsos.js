@@ -3,6 +3,18 @@ import { Router } from 'express';
 export default function qsoRoutes(db) {
   const router = Router();
 
+  // Recent 50 QSOs (must be before the generic :contestId/qsos route)
+  router.get('/api/contests/:contestId/qsos/recent', (req, res) => {
+    try {
+      const rows = db.prepare(
+        'SELECT * FROM qsos WHERE contest_id = ? ORDER BY created_at DESC LIMIT 50'
+      ).all(req.params.contestId);
+      res.json(rows);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // List QSOs with optional filters and pagination
   router.get('/api/contests/:contestId/qsos', (req, res) => {
     const { limit = '100', offset = '0', band, mode, station } = req.query;
@@ -28,18 +40,6 @@ export default function qsoRoutes(db) {
 
     try {
       const rows = db.prepare(sql).all(...params);
-      res.json(rows);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // Recent 50 QSOs
-  router.get('/api/contests/:contestId/qsos/recent', (req, res) => {
-    try {
-      const rows = db.prepare(
-        'SELECT * FROM qsos WHERE contest_id = ? ORDER BY created_at DESC LIMIT 50'
-      ).all(req.params.contestId);
       res.json(rows);
     } catch (err) {
       res.status(500).json({ error: err.message });

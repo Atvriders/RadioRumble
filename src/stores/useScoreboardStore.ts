@@ -43,16 +43,11 @@ export const useScoreboardStore = create<ScoreboardState>((set) => ({
       for (const station of stations) {
         if (!station.clubName) continue;
         const existing = clubMap.get(station.clubName);
-        if (existing) {
-          existing.totalQsos += station.totalQsos;
-          existing.totalPoints += station.totalPoints;
-        } else {
-          clubMap.set(station.clubName, {
-            clubName: station.clubName,
-            totalQsos: station.totalQsos,
-            totalPoints: station.totalPoints,
-          });
-        }
+        clubMap.set(station.clubName, {
+          clubName: station.clubName,
+          totalQsos: (existing?.totalQsos ?? 0) + station.totalQsos,
+          totalPoints: (existing?.totalPoints ?? 0) + station.totalPoints,
+        });
       }
 
       return { stations, clubTotals: Array.from(clubMap.values()) };
