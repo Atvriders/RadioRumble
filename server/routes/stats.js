@@ -13,9 +13,9 @@ export default function statsRoutes(db) {
         SELECT
           station_callsign,
           COUNT(*) AS qso_count,
-          SUM(points) AS total_points,
-          SUM(is_multiplier) AS multipliers,
-          SUM(points) * MAX(1, SUM(is_multiplier)) AS score
+          COALESCE(SUM(points), 0) AS total_points,
+          COALESCE(SUM(is_multiplier), 0) AS multipliers,
+          COALESCE(SUM(points), 0) * MAX(1, COALESCE(SUM(is_multiplier), 0)) AS score
         FROM qsos
         WHERE contest_id = ?
         GROUP BY station_callsign
@@ -78,11 +78,11 @@ export default function statsRoutes(db) {
 
       // Club totals
       const clubTotals = db.prepare(`
-        SELECT c.name AS club_name, COUNT(q.id) AS total_qsos, SUM(q.points) AS total_points
-        FROM qsos q
-        JOIN operators o ON q.station_callsign = o.callsign AND q.contest_id = o.contest_id
-        JOIN clubs c ON o.club_id = c.id
-        WHERE q.contest_id = ?
+        SELECT c.name AS club_name, COUNT(q.id) AS total_qsos, COALESCE(SUM(q.points), 0) AS total_points
+        FROM clubs c
+        LEFT JOIN operators o ON o.club_id = c.id AND o.contest_id = c.contest_id
+        LEFT JOIN qsos q ON q.station_callsign = o.callsign AND q.contest_id = o.contest_id
+        WHERE c.contest_id = ?
         GROUP BY c.name
         ORDER BY total_points DESC
       `).all(contestId);
@@ -137,7 +137,13 @@ export default function statsRoutes(db) {
         WHERE contest_id = ? GROUP BY mode ORDER BY count DESC
       `).all(contestId);
 
-      res.json({ totals, topStations, bandBreakdown, modeBreakdown });
+      const grids = db.prepare(`
+        SELECT DISTINCT UPPER(SUBSTR(gridsquare, 1, 4)) AS grid
+        FROM qsos
+        WHERE contest_id = ? AND gridsquare IS NOT NULL AND gridsquare != ''
+      `).all(contestId).map(r => r.grid);
+
+      res.json({ totals, topStations, bandBreakdown, modeBreakdown, grids });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

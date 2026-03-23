@@ -1,5 +1,13 @@
 import { Router } from 'express';
 
+function mapContest(r) {
+  return {
+    id: r.id, name: r.name, description: r.description,
+    startTime: r.start_time, endTime: r.end_time,
+    status: r.status, rules: r.rules, createdAt: r.created_at
+  };
+}
+
 export default function contestRoutes(db) {
   const router = Router();
 
@@ -7,7 +15,8 @@ export default function contestRoutes(db) {
   router.get('/api/contests', (req, res) => {
     try {
       const rows = db.prepare('SELECT * FROM contests ORDER BY created_at DESC').all();
-      res.json(rows);
+      const mapped = rows.map(mapContest);
+      res.json(mapped);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -24,7 +33,7 @@ export default function contestRoutes(db) {
         'INSERT INTO contests (name, description, start_time, end_time, rules) VALUES (?, ?, ?, ?, ?)'
       ).run(name, description || null, startTime, endTime, rules || null);
       const contest = db.prepare('SELECT * FROM contests WHERE id = ?').get(info.lastInsertRowid);
-      res.status(201).json(contest);
+      res.status(201).json(mapContest(contest));
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -35,7 +44,7 @@ export default function contestRoutes(db) {
     try {
       const contest = db.prepare('SELECT * FROM contests WHERE id = ?').get(req.params.id);
       if (!contest) return res.status(404).json({ error: 'Contest not found' });
-      res.json(contest);
+      res.json(mapContest(contest));
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -71,7 +80,7 @@ export default function contestRoutes(db) {
       values.push(req.params.id);
       db.prepare(`UPDATE contests SET ${fields.join(', ')} WHERE id = ?`).run(...values);
       const updated = db.prepare('SELECT * FROM contests WHERE id = ?').get(req.params.id);
-      res.json(updated);
+      res.json(mapContest(updated));
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

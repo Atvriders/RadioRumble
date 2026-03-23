@@ -46,8 +46,12 @@ export default function StatsDashboard() {
         ]);
 
         const rate: RateData[] = rateRes.ok ? await rateRes.json() : [];
-        const bands: Record<string, number> = bandsRes.ok ? await bandsRes.json() : {};
-        const modes: Record<string, number> = modesRes.ok ? await modesRes.json() : {};
+        const bandsArr = bandsRes.ok ? await bandsRes.json() : [];
+        const bands: Record<string, number> = {};
+        for (const b of bandsArr) bands[b.band] = b.count;
+        const modesArr = modesRes.ok ? await modesRes.json() : [];
+        const modes: Record<string, number> = {};
+        for (const m of modesArr) modes[m.mode] = m.count;
         const statsData = statsRes.ok ? await statsRes.json() : { grids: [] };
 
         setStats({

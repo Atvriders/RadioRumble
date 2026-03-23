@@ -99,8 +99,8 @@ const ContestManager: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchContests();
-  }, [fetchContests]);
+    useContestStore.getState().fetchContests();
+  }, []);
 
   /* ── handlers ── */
   const handleCreate = async (e: React.FormEvent) => {

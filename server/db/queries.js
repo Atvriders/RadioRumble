@@ -178,8 +178,8 @@ export function getScoreboard(db, contestId) {
     ORDER BY total_points DESC
   `).all(contestId).map(row => ({
     ...row,
-    bands: JSON.parse(row.bands).filter(Boolean),
-    modes: JSON.parse(row.modes).filter(Boolean),
+    bands: row.bands ? JSON.parse(row.bands).filter(Boolean) : [],
+    modes: row.modes ? JSON.parse(row.modes).filter(Boolean) : [],
   }));
 }
 

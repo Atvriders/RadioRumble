@@ -118,7 +118,7 @@ const ScoreRow: React.FC<ScoreRowProps> = ({ rank, station, isLeader }) => {
           gap: 8,
         }}
       >
-        <RateGraph data={[]} />
+        <RateGraph data={[station.rate]} />
         <span
           style={{
             fontFamily: "'JetBrains Mono', monospace",

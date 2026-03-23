@@ -14,14 +14,13 @@ export default function Header() {
   const connected = useWebSocketStore((s) => s.connected);
 
   useEffect(() => {
+    const { fetchContests } = useContestStore.getState();
     fetchContests().then(() => {
-      const current = useContestStore.getState();
-      if (!current.activeContest && current.contests.length > 0) {
-        const active = current.contests.find((c) => c.status === 'active') ?? current.contests[0];
-        setActiveContest(active);
-      }
+      const { contests } = useContestStore.getState();
+      const active = contests.find((c) => c.status === 'active') || contests[0];
+      if (active) useContestStore.getState().setActiveContest(active);
     });
-  }, [fetchContests, setActiveContest]);
+  }, []);
 
   return (
     <header className="header-mobile" style={styles.header}>

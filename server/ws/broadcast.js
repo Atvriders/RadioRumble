@@ -78,7 +78,7 @@ export class WsBroadcast {
     const contestId = contest.id;
 
     const stations = this.db.prepare(`
-      SELECT station_callsign, COUNT(*) AS qso_count, SUM(points) AS total_points
+      SELECT station_callsign, COUNT(*) AS qso_count, COALESCE(SUM(points), 0) AS total_points
       FROM qsos WHERE contest_id = ? GROUP BY station_callsign ORDER BY total_points DESC
     `).all(contestId);
 
@@ -111,6 +111,15 @@ export class WsBroadcast {
       modeMap[r.station_callsign][r.mode] = r.count;
     }
 
+    const rateRows = this.db.prepare(`
+      SELECT station_callsign, COUNT(*) AS rate
+      FROM qsos
+      WHERE contest_id = ? AND created_at >= datetime('now', '-1 hour')
+      GROUP BY station_callsign
+    `).all(contestId);
+    const rateMap = {};
+    for (const r of rateRows) rateMap[r.station_callsign] = r.rate;
+
     const result = stations.map(s => ({
       callsign: s.station_callsign,
       clubName: opClubMap[s.station_callsign] || null,
@@ -118,7 +127,7 @@ export class WsBroadcast {
       totalPoints: s.total_points,
       bands: bandMap[s.station_callsign] || {},
       modes: modeMap[s.station_callsign] || {},
-      rate: 0,
+      rate: rateMap[s.station_callsign] || 0,
     }));
 
     const clubTotals = this.db.prepare(`

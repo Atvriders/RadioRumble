@@ -59,6 +59,7 @@ server.on('upgrade', (request, socket, head) => {
 const udp = createSocket('udp4');
 
 udp.on('message', (msg) => {
+  if (msg.length > 65536) return; // Ignore oversized messages
   try {
     const raw = msg.toString('utf8');
     const parsed = parseAdif(raw);
