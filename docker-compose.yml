@@ -1,6 +1,6 @@
 services:
   radiorumble:
-    build: .
+    image: ghcr.io/atvriders/radiorumble:latest
     ports:
       - "7373:7373"
       - "2237:2237/udp"
