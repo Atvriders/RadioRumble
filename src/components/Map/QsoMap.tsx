@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Polyline, Tooltip, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Polyline, Tooltip, Marker, useMapEvents, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import { useContestStore } from '../../stores/useContestStore';
 import { greatCirclePoints } from './GreatCircle';
@@ -37,6 +37,10 @@ const GOLD = '#F4C55C';
 // Center on Kansas (KSU area)
 const DEFAULT_CENTER: [number, number] = [39.0, -96.5];
 const DEFAULT_ZOOM = typeof window !== 'undefined' && window.innerWidth <= 768 ? 3 : 4;
+
+// GeoJSON CDN URLs
+const COUNTRIES_GEOJSON_URL = 'https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json';
+const US_STATES_GEOJSON_URL = 'https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json';
 
 // ---------------------------------------------------------------------------
 // Country labels (~40 major countries)
@@ -163,6 +167,26 @@ function textIcon(label: string, fontSize: number, opacity: number) {
 }
 
 // ---------------------------------------------------------------------------
+// GeoJSON style factories (stable references to avoid re-renders)
+// ---------------------------------------------------------------------------
+const countryBoundaryStyle: L.PathOptions = {
+  color: PURPLE,
+  weight: 0.8,
+  opacity: 0.3,
+  fill: false,
+};
+
+const stateBoundaryStyle: L.PathOptions = {
+  color: PURPLE,
+  weight: 0.5,
+  opacity: 0.2,
+  fill: false,
+};
+
+const countryStyleFn = () => countryBoundaryStyle;
+const stateStyleFn = () => stateBoundaryStyle;
+
+// ---------------------------------------------------------------------------
 // Sub-component that tracks zoom level and renders labels
 // ---------------------------------------------------------------------------
 function MapLabels() {
@@ -174,26 +198,69 @@ function MapLabels() {
     },
   });
 
+  // Dynamic font sizes based on zoom
+  // Country labels: base 11px at zoom 4 reference
+  const countryFontSize = useMemo(
+    () => Math.round(11 * (zoom / 4)),
+    [zoom]
+  );
+  // State labels: base 9px at zoom 6 reference
+  const stateFontSize = useMemo(
+    () => Math.round(9 * (zoom / 6)),
+    [zoom]
+  );
+
+  // Clamp font sizes to reasonable bounds
+  const clampedCountrySize = Math.max(8, Math.min(countryFontSize, 22));
+  const clampedStateSize = Math.max(7, Math.min(stateFontSize, 18));
+
+  // Memoize country label icons keyed on zoom
+  const countryIcons = useMemo(
+    () =>
+      COUNTRY_LABELS.map((c) => ({
+        ...c,
+        icon: textIcon(c.name, clampedCountrySize, 0.4),
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [zoom]
+  );
+
+  // Memoize state label icons keyed on zoom
+  const stateIcons = useMemo(
+    () =>
+      US_STATE_LABELS.map((s) => ({
+        ...s,
+        icon: textIcon(s.abbr, clampedStateSize, 0.3),
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [zoom]
+  );
+
+  // Hide "United States" country label when zoomed in enough to see state labels
+  const hideUS = zoom >= 5;
+
   return (
     <>
-      {/* Country labels — always visible */}
-      {COUNTRY_LABELS.map((c) => (
-        <Marker
-          key={`country-${c.name}`}
-          position={[c.lat, c.lng]}
-          icon={textIcon(c.name, 11, 0.4)}
-          interactive={false}
-          zIndexOffset={-10000}
-        />
-      ))}
+      {/* Country labels — always visible (hide US when zoomed in) */}
+      {countryIcons
+        .filter((c) => !(hideUS && c.name === 'United States'))
+        .map((c) => (
+          <Marker
+            key={`country-${c.name}`}
+            position={[c.lat, c.lng]}
+            icon={c.icon}
+            interactive={false}
+            zIndexOffset={-10000}
+          />
+        ))}
 
       {/* US state labels — visible at zoom >= 4 */}
       {zoom >= 4 &&
-        US_STATE_LABELS.map((s) => (
+        stateIcons.map((s) => (
           <Marker
             key={`state-${s.abbr}`}
             position={[s.lat, s.lng]}
-            icon={textIcon(s.abbr, 9, 0.3)}
+            icon={s.icon}
             interactive={false}
             zIndexOffset={-10000}
           />
@@ -206,6 +273,25 @@ export default function QsoMap() {
   const activeContest = useContestStore((s) => s.activeContest);
   const [rawQsos, setRawQsos] = useState<RawQso[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // GeoJSON boundary data
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [countriesGeo, setCountriesGeo] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [statesGeo, setStatesGeo] = useState<any>(null);
+
+  // Fetch GeoJSON boundaries on mount
+  useEffect(() => {
+    fetch(COUNTRIES_GEOJSON_URL)
+      .then((res) => res.json())
+      .then((data) => setCountriesGeo(data))
+      .catch(() => {});
+
+    fetch(US_STATES_GEOJSON_URL)
+      .then((res) => res.json())
+      .then((data) => setStatesGeo(data))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!activeContest) return;
@@ -278,6 +364,24 @@ export default function QsoMap() {
         scrollWheelZoom={true}
       >
         <TileLayer url={DARK_TILES} attribution={DARK_ATTR} />
+
+        {/* GeoJSON boundary outlines — rendered BELOW QSO markers */}
+        {countriesGeo && (
+          <GeoJSON
+            key="countries-boundaries"
+            data={countriesGeo}
+            style={countryStyleFn}
+            interactive={false}
+          />
+        )}
+        {statesGeo && (
+          <GeoJSON
+            key="states-boundaries"
+            data={statesGeo}
+            style={stateStyleFn}
+            interactive={false}
+          />
+        )}
 
         {/* Country & state name labels */}
         <MapLabels />

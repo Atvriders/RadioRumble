@@ -31,6 +31,15 @@ interface ArcData {
   callsign: string;
 }
 
+interface GeoFeature {
+  type: string;
+  properties: Record<string, any>;
+  geometry: {
+    type: string;
+    coordinates: any;
+  };
+}
+
 const PURPLE = '#512888';
 const GOLD = '#F4C55C';
 
@@ -153,6 +162,14 @@ const US_STATE_LABELS: GlobeLabel[] = [
 
 const GLOBE_LABELS: GlobeLabel[] = [...COUNTRY_LABELS, ...US_STATE_LABELS];
 
+const COUNTRY_STROKE_COLOR = 'rgba(81, 40, 136, 0.4)';
+const STATE_STROKE_COLOR = 'rgba(81, 40, 136, 0.25)';
+
+const COUNTRIES_GEOJSON_URL =
+  'https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json';
+const US_STATES_GEOJSON_URL =
+  'https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json';
+
 export default function QsoGlobe() {
   const activeContest = useContestStore((s) => s.activeContest);
   const [rawQsos, setRawQsos] = useState<RawQso[]>([]);
@@ -160,6 +177,9 @@ export default function QsoGlobe() {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<GlobeInstance | undefined>(undefined);
+
+  // Boundary polygon features (countries + US states combined)
+  const [polygonFeatures, setPolygonFeatures] = useState<GeoFeature[]>([]);
 
   // Track container size
   useEffect(() => {
@@ -174,6 +194,48 @@ export default function QsoGlobe() {
     const observer = new ResizeObserver(update);
     observer.observe(el);
     return () => observer.disconnect();
+  }, []);
+
+  // Fetch GeoJSON boundary data
+  useEffect(() => {
+    const fetchBoundaries = async () => {
+      try {
+        const [countriesRes, statesRes] = await Promise.all([
+          fetch(COUNTRIES_GEOJSON_URL),
+          fetch(US_STATES_GEOJSON_URL),
+        ]);
+
+        const combined: GeoFeature[] = [];
+
+        if (countriesRes.ok) {
+          const countriesGeo = await countriesRes.json();
+          const countryFeatures: GeoFeature[] = (countriesGeo.features || []).map(
+            (f: GeoFeature) => ({
+              ...f,
+              properties: { ...f.properties, _boundaryType: 'country' },
+            })
+          );
+          combined.push(...countryFeatures);
+        }
+
+        if (statesRes.ok) {
+          const statesGeo = await statesRes.json();
+          const stateFeatures: GeoFeature[] = (statesGeo.features || []).map(
+            (f: GeoFeature) => ({
+              ...f,
+              properties: { ...f.properties, _boundaryType: 'state' },
+            })
+          );
+          combined.push(...stateFeatures);
+        }
+
+        setPolygonFeatures(combined);
+      } catch {
+        // silently fail — globe still works without boundaries
+      }
+    };
+
+    fetchBoundaries();
   }, []);
 
   // Set initial view when globe mounts
@@ -257,6 +319,14 @@ export default function QsoGlobe() {
     };
   }, [rawQsos]);
 
+  // Polygon stroke color callback — countries vs states
+  const getPolygonStrokeColor = useCallback((d: object) => {
+    const feature = d as GeoFeature;
+    return feature.properties?._boundaryType === 'state'
+      ? STATE_STROKE_COLOR
+      : COUNTRY_STROKE_COLOR;
+  }, []);
+
   if (!activeContest) {
     return (
       <div style={styles.container}>
@@ -309,6 +379,13 @@ export default function QsoGlobe() {
             const a = d as ArcData;
             return `<div style="background:rgba(45,29,66,0.92);color:#E7DED0;padding:4px 10px;border-radius:4px;font-size:13px;border:1px solid ${GOLD}">${a.callsign}</div>`;
           }}
+          // Boundary polygons (countries + US states)
+          polygonsData={polygonFeatures}
+          polygonCapColor={() => 'rgba(0,0,0,0)'}
+          polygonSideColor={() => 'rgba(0,0,0,0)'}
+          polygonStrokeColor={getPolygonStrokeColor}
+          polygonAltitude={0.005}
+          polygonsTransitionDuration={0}
           // Labels
           labelsData={GLOBE_LABELS}
           labelLat="lat"
