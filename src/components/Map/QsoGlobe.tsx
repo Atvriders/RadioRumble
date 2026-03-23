@@ -154,7 +154,7 @@ export default function QsoGlobe() {
           ref={globeRef as any}
           width={dimensions.width}
           height={dimensions.height}
-          globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
+          globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
           backgroundImageUrl=""
           backgroundColor="rgba(0,0,0,0)"
           atmosphereColor={PURPLE}
