@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Polyline, Tooltip } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Polyline, Tooltip, Marker, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
 import { useContestStore } from '../../stores/useContestStore';
 import { greatCirclePoints } from './GreatCircle';
 
@@ -36,6 +37,170 @@ const GOLD = '#F4C55C';
 // Center on Kansas (KSU area)
 const DEFAULT_CENTER: [number, number] = [39.0, -96.5];
 const DEFAULT_ZOOM = typeof window !== 'undefined' && window.innerWidth <= 768 ? 3 : 4;
+
+// ---------------------------------------------------------------------------
+// Country labels (~40 major countries)
+// ---------------------------------------------------------------------------
+const COUNTRY_LABELS: { name: string; lat: number; lng: number }[] = [
+  { name: 'United States', lat: 39.8, lng: -98.5 },
+  { name: 'Canada', lat: 56.1, lng: -106.3 },
+  { name: 'Mexico', lat: 23.6, lng: -102.5 },
+  { name: 'Brazil', lat: -14.2, lng: -51.9 },
+  { name: 'Argentina', lat: -38.4, lng: -63.6 },
+  { name: 'Colombia', lat: 4.6, lng: -74.1 },
+  { name: 'Peru', lat: -9.2, lng: -75.0 },
+  { name: 'Chile', lat: -35.7, lng: -71.5 },
+  { name: 'Venezuela', lat: 6.4, lng: -66.6 },
+  { name: 'United Kingdom', lat: 55.4, lng: -3.4 },
+  { name: 'France', lat: 46.6, lng: 1.9 },
+  { name: 'Germany', lat: 51.2, lng: 10.4 },
+  { name: 'Spain', lat: 40.5, lng: -3.7 },
+  { name: 'Italy', lat: 41.9, lng: 12.6 },
+  { name: 'Portugal', lat: 39.4, lng: -8.2 },
+  { name: 'Netherlands', lat: 52.1, lng: 5.3 },
+  { name: 'Poland', lat: 51.9, lng: 19.1 },
+  { name: 'Sweden', lat: 60.1, lng: 18.6 },
+  { name: 'Norway', lat: 60.5, lng: 8.5 },
+  { name: 'Finland', lat: 61.9, lng: 25.7 },
+  { name: 'Ukraine', lat: 48.4, lng: 31.2 },
+  { name: 'Romania', lat: 45.9, lng: 25.0 },
+  { name: 'Turkey', lat: 39.9, lng: 32.9 },
+  { name: 'Russia', lat: 61.5, lng: 105.3 },
+  { name: 'China', lat: 35.9, lng: 104.2 },
+  { name: 'Japan', lat: 36.2, lng: 138.3 },
+  { name: 'South Korea', lat: 35.9, lng: 127.8 },
+  { name: 'India', lat: 20.6, lng: 79.0 },
+  { name: 'Pakistan', lat: 30.4, lng: 69.3 },
+  { name: 'Indonesia', lat: -0.8, lng: 113.9 },
+  { name: 'Philippines', lat: 12.9, lng: 121.8 },
+  { name: 'Thailand', lat: 15.9, lng: 100.9 },
+  { name: 'Vietnam', lat: 14.1, lng: 108.3 },
+  { name: 'Australia', lat: -25.3, lng: 133.8 },
+  { name: 'New Zealand', lat: -40.9, lng: 174.9 },
+  { name: 'South Africa', lat: -30.6, lng: 22.9 },
+  { name: 'Nigeria', lat: 9.1, lng: 8.7 },
+  { name: 'Egypt', lat: 26.8, lng: 30.8 },
+  { name: 'Kenya', lat: -0.02, lng: 37.9 },
+  { name: 'Saudi Arabia', lat: 23.9, lng: 45.1 },
+  { name: 'Iran', lat: 32.4, lng: 53.7 },
+];
+
+// ---------------------------------------------------------------------------
+// US state labels (all 50 — 2-letter abbreviations with center coords)
+// ---------------------------------------------------------------------------
+const US_STATE_LABELS: { abbr: string; lat: number; lng: number }[] = [
+  { abbr: 'AL', lat: 32.32, lng: -86.90 },
+  { abbr: 'AK', lat: 63.59, lng: -154.49 },
+  { abbr: 'AZ', lat: 34.05, lng: -111.09 },
+  { abbr: 'AR', lat: 35.20, lng: -91.83 },
+  { abbr: 'CA', lat: 36.78, lng: -119.42 },
+  { abbr: 'CO', lat: 39.55, lng: -105.78 },
+  { abbr: 'CT', lat: 41.60, lng: -72.76 },
+  { abbr: 'DE', lat: 38.91, lng: -75.53 },
+  { abbr: 'FL', lat: 27.66, lng: -81.52 },
+  { abbr: 'GA', lat: 32.16, lng: -82.90 },
+  { abbr: 'HI', lat: 19.90, lng: -155.58 },
+  { abbr: 'ID', lat: 44.07, lng: -114.74 },
+  { abbr: 'IL', lat: 40.63, lng: -89.40 },
+  { abbr: 'IN', lat: 40.27, lng: -86.13 },
+  { abbr: 'IA', lat: 41.88, lng: -93.10 },
+  { abbr: 'KS', lat: 39.01, lng: -98.48 },
+  { abbr: 'KY', lat: 37.67, lng: -84.67 },
+  { abbr: 'LA', lat: 31.17, lng: -91.87 },
+  { abbr: 'ME', lat: 45.25, lng: -69.45 },
+  { abbr: 'MD', lat: 39.05, lng: -76.64 },
+  { abbr: 'MA', lat: 42.41, lng: -71.38 },
+  { abbr: 'MI', lat: 44.31, lng: -84.71 },
+  { abbr: 'MN', lat: 46.73, lng: -94.69 },
+  { abbr: 'MS', lat: 32.35, lng: -89.40 },
+  { abbr: 'MO', lat: 38.46, lng: -92.29 },
+  { abbr: 'MT', lat: 46.88, lng: -110.36 },
+  { abbr: 'NE', lat: 41.49, lng: -99.90 },
+  { abbr: 'NV', lat: 38.80, lng: -116.42 },
+  { abbr: 'NH', lat: 43.19, lng: -71.57 },
+  { abbr: 'NJ', lat: 40.06, lng: -74.41 },
+  { abbr: 'NM', lat: 34.52, lng: -105.87 },
+  { abbr: 'NY', lat: 43.30, lng: -74.22 },
+  { abbr: 'NC', lat: 35.76, lng: -79.02 },
+  { abbr: 'ND', lat: 47.55, lng: -101.00 },
+  { abbr: 'OH', lat: 40.42, lng: -82.91 },
+  { abbr: 'OK', lat: 35.47, lng: -97.09 },
+  { abbr: 'OR', lat: 43.80, lng: -120.55 },
+  { abbr: 'PA', lat: 41.20, lng: -77.19 },
+  { abbr: 'RI', lat: 41.58, lng: -71.48 },
+  { abbr: 'SC', lat: 33.84, lng: -81.16 },
+  { abbr: 'SD', lat: 43.97, lng: -99.90 },
+  { abbr: 'TN', lat: 35.52, lng: -86.58 },
+  { abbr: 'TX', lat: 31.97, lng: -99.90 },
+  { abbr: 'UT', lat: 39.32, lng: -111.09 },
+  { abbr: 'VT', lat: 44.56, lng: -72.58 },
+  { abbr: 'VA', lat: 37.43, lng: -78.66 },
+  { abbr: 'WA', lat: 47.75, lng: -120.74 },
+  { abbr: 'WV', lat: 38.60, lng: -80.45 },
+  { abbr: 'WI', lat: 43.78, lng: -88.79 },
+  { abbr: 'WY', lat: 43.08, lng: -107.29 },
+];
+
+// ---------------------------------------------------------------------------
+// Helper: create a text-only divIcon (no pin, no shadow)
+// ---------------------------------------------------------------------------
+function textIcon(label: string, fontSize: number, opacity: number) {
+  return L.divIcon({
+    className: '', // no default leaflet styles
+    html: `<span style="
+      color:#E7DED0;
+      opacity:${opacity};
+      font-size:${fontSize}px;
+      font-family:sans-serif;
+      white-space:nowrap;
+      pointer-events:none;
+      user-select:none;
+      text-shadow:0 0 3px rgba(0,0,0,0.7);
+    ">${label}</span>`,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Sub-component that tracks zoom level and renders labels
+// ---------------------------------------------------------------------------
+function MapLabels() {
+  const [zoom, setZoom] = useState(DEFAULT_ZOOM);
+
+  useMapEvents({
+    zoomend: (e) => {
+      setZoom(e.target.getZoom());
+    },
+  });
+
+  return (
+    <>
+      {/* Country labels — always visible */}
+      {COUNTRY_LABELS.map((c) => (
+        <Marker
+          key={`country-${c.name}`}
+          position={[c.lat, c.lng]}
+          icon={textIcon(c.name, 11, 0.4)}
+          interactive={false}
+          zIndexOffset={-10000}
+        />
+      ))}
+
+      {/* US state labels — visible at zoom >= 4 */}
+      {zoom >= 4 &&
+        US_STATE_LABELS.map((s) => (
+          <Marker
+            key={`state-${s.abbr}`}
+            position={[s.lat, s.lng]}
+            icon={textIcon(s.abbr, 9, 0.3)}
+            interactive={false}
+            zIndexOffset={-10000}
+          />
+        ))}
+    </>
+  );
+}
 
 export default function QsoMap() {
   const activeContest = useContestStore((s) => s.activeContest);
@@ -113,6 +278,9 @@ export default function QsoMap() {
         scrollWheelZoom={true}
       >
         <TileLayer url={DARK_TILES} attribution={DARK_ATTR} />
+
+        {/* Country & state name labels */}
+        <MapLabels />
 
         {/* Great circle paths from station to contacts */}
         {contactsWithPos.map((c, i) => {
