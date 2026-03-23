@@ -1,0 +1,174 @@
+import { useContestStore } from '../../stores/useContestStore';
+
+function formatTime(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+export default function Header() {
+  const { activeContest, elapsed, remaining, status } = useContestStore();
+
+  return (
+    <header style={styles.header}>
+      {/* Left — branding */}
+      <div style={styles.left}>
+        <span style={styles.icon}>&#x26A1;</span>
+        <span style={styles.title}>RADIORUMBLE</span>
+      </div>
+
+      {/* Center — contest info */}
+      <div style={styles.center}>
+        {activeContest ? (
+          <>
+            <span style={styles.contestName}>{activeContest.name}</span>
+            <span style={styles.timer}>
+              {status === 'active' && (
+                <>
+                  <span style={styles.timerLabel}>ELAPSED</span>
+                  <span style={styles.timerValue}>{formatTime(elapsed)}</span>
+                  {remaining !== null && (
+                    <>
+                      <span style={styles.timerSep}>|</span>
+                      <span style={styles.timerLabel}>LEFT</span>
+                      <span style={styles.timerValue}>
+                        {formatTime(remaining)}
+                      </span>
+                    </>
+                  )}
+                </>
+              )}
+              {status === 'pending' && (
+                <span style={styles.statusPill}>PENDING</span>
+              )}
+              {status === 'completed' && (
+                <span style={{ ...styles.statusPill, background: '#2a6e2a' }}>
+                  COMPLETE
+                </span>
+              )}
+            </span>
+          </>
+        ) : (
+          <span style={styles.noContest}>No active contest</span>
+        )}
+      </div>
+
+      {/* Right — connection + KSU badge */}
+      <div style={styles.right}>
+        <span
+          style={{
+            ...styles.dot,
+            background: '#4ade80', // default green; swap to #ef4444 when disconnected
+          }}
+          title="Connected"
+        />
+        <span style={styles.badge}>KSU</span>
+      </div>
+    </header>
+  );
+}
+
+const styles: Record<string, React.CSSProperties> = {
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: 56,
+    padding: '0 20px',
+    background: '#512888',
+    flexShrink: 0,
+    borderBottom: '2px solid #6b3fa0',
+  },
+
+  /* Left */
+  left: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  },
+  icon: {
+    fontSize: 20,
+    lineHeight: 1,
+  },
+  title: {
+    fontWeight: 800,
+    fontSize: 18,
+    letterSpacing: '0.08em',
+    color: '#ffffff',
+  },
+
+  /* Center */
+  center: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 2,
+  },
+  contestName: {
+    fontWeight: 600,
+    fontSize: 14,
+    color: '#F4C55C',
+    letterSpacing: '0.02em',
+  },
+  timer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    fontSize: 12,
+  },
+  timerLabel: {
+    color: 'rgba(255,255,255,0.5)',
+    fontWeight: 600,
+    fontSize: 10,
+    letterSpacing: '0.06em',
+  },
+  timerValue: {
+    color: '#ffffff',
+    fontFamily: "'JetBrains Mono', monospace",
+    fontWeight: 600,
+    fontSize: 13,
+  },
+  timerSep: {
+    color: 'rgba(255,255,255,0.25)',
+    margin: '0 2px',
+  },
+  statusPill: {
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: '0.06em',
+    padding: '2px 8px',
+    borderRadius: 4,
+    background: '#CEA152',
+    color: '#1a1028',
+  },
+  noContest: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 13,
+    fontStyle: 'italic',
+  },
+
+  /* Right */
+  right: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: '50%',
+    display: 'inline-block',
+    boxShadow: '0 0 6px rgba(74,222,128,0.5)',
+  },
+  badge: {
+    fontWeight: 800,
+    fontSize: 13,
+    letterSpacing: '0.12em',
+    color: '#F4C55C',
+    border: '1.5px solid #F4C55C',
+    borderRadius: 4,
+    padding: '2px 8px',
+    lineHeight: 1,
+  },
+};
