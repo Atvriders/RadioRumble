@@ -6,12 +6,13 @@ Built for K-State and the collegiate ham radio community. Operators run WSJT-X (
 
 ## Features
 
-- **Live Scoreboard** -- per-operator and per-club rankings update in real time via WebSocket
-- **WSJT-X Integration** -- receives decoded QSOs over UDP (port 2237) with zero operator effort
-- **Multi-Club Support** -- multiple clubs compete head-to-head in a single contest
-- **QSO Map** -- Maidenhead grid square plotting on an interactive Leaflet map
-- **Contest Stats** -- band/mode breakdowns, QSO rate charts, top stations
-- **Mobile Friendly** -- responsive UI works on phones for spectators and operators alike
+- **Live Scoreboard** — per-operator and per-club rankings update in real time via WebSocket
+- **WSJT-X Integration** — receives decoded QSOs over UDP (port 2237) with zero operator effort
+- **Multi-Club Support** — multiple clubs compete head-to-head in a single contest
+- **QSO Map (2D + 3D Globe)** — toggle between Leaflet 2D map and interactive 3D globe (react-globe.gl), with great circle paths showing every QSO connection between stations and contacts
+- **Contest Stats** — band/mode breakdowns, QSO rate charts, multiplier tracking
+- **Contest Management** — create/start/stop contests, configure scoring rules, manage clubs and operators
+- **Mobile Friendly** — responsive bottom tab bar, compact scoreboard, works on phones for spectators and operators
 
 ## Quick Start (Docker)
 
@@ -111,7 +112,7 @@ Every logged QSO will now appear on the RadioRumble scoreboard within seconds.
 
 | Layer      | Technology                          |
 |------------|-------------------------------------|
-| Frontend   | React 18, Zustand, React Router, Leaflet |
+| Frontend   | React 18, Zustand, React Router, Leaflet, react-globe.gl |
 | Backend    | Node.js, Express, WebSocket (ws)    |
 | Database   | SQLite via better-sqlite3 (WAL mode)|
 | UDP Ingest | Node dgram socket (ADIF parsing)    |

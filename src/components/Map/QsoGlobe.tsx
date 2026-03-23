@@ -182,7 +182,7 @@ export default function QsoGlobe() {
           arcEndLng="endLng"
           arcColor={() => [`${GOLD}66`, `${GOLD}CC`]}
           arcAltitude={0.2}
-          arcStroke={0.4}
+          arcStroke={0.6}
           arcDashLength={0.6}
           arcDashGap={0.3}
           arcDashAnimateTime={1500}

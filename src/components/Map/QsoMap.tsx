@@ -128,7 +128,7 @@ export default function QsoMap() {
             <Polyline
               key={`path-${i}`}
               positions={path.map(([lat, lng]) => [lat, lng] as [number, number])}
-              pathOptions={{ color: GOLD, weight: 1, opacity: 0.25 }}
+              pathOptions={{ color: GOLD, weight: 1.5, opacity: 0.4 }}
             />
           );
         })}
