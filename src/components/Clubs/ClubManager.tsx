@@ -73,14 +73,13 @@ const ClubManager: React.FC<ClubManagerProps> = ({ contestId }) => {
     fetchClubs();
   }, [fetchClubs]);
 
-  /* ── fetch operators for a club ── */
+  /* ── fetch operators for a club (extracted from clubs endpoint) ── */
   const fetchOperators = useCallback(
     async (clubId: number) => {
-      const res = await fetch(
-        `/api/contests/${contestId}/clubs/${clubId}/operators`
-      );
-      const data: Operator[] = await res.json();
-      setOperators((prev) => ({ ...prev, [clubId]: data }));
+      const res = await fetch(`/api/contests/${contestId}/clubs`);
+      const data: Club[] = await res.json();
+      const club = data.find((c) => c.id === clubId);
+      setOperators((prev) => ({ ...prev, [clubId]: club?.operators || [] }));
     },
     [contestId]
   );
@@ -88,7 +87,7 @@ const ClubManager: React.FC<ClubManagerProps> = ({ contestId }) => {
   /* ── handlers ── */
   const handleAddClub = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clubName.trim()) return;
+    if (!clubName.trim() || !clubCallsign.trim()) return;
     setAddingClub(true);
     try {
       await fetch(`/api/contests/${contestId}/clubs`, {
@@ -96,7 +95,7 @@ const ClubManager: React.FC<ClubManagerProps> = ({ contestId }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: clubName.trim(),
-          callsign: clubCallsign.trim().toUpperCase() || undefined,
+          callsign: clubCallsign.trim().toUpperCase(),
         }),
       });
       setClubName('');
@@ -108,7 +107,7 @@ const ClubManager: React.FC<ClubManagerProps> = ({ contestId }) => {
   };
 
   const handleDeleteClub = async (clubId: number) => {
-    await fetch(`/api/contests/${contestId}/clubs/${clubId}`, {
+    await fetch(`/api/clubs/${clubId}`, {
       method: 'DELETE',
     });
     if (expanded === clubId) setExpanded(null);
@@ -127,7 +126,7 @@ const ClubManager: React.FC<ClubManagerProps> = ({ contestId }) => {
   const handleAddOperator = async (clubId: number) => {
     const callsign = (opCallsigns[clubId] || '').trim().toUpperCase();
     if (!callsign) return;
-    await fetch(`/api/contests/${contestId}/clubs/${clubId}/operators`, {
+    await fetch(`/api/clubs/${clubId}/operators`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ callsign }),
@@ -137,10 +136,7 @@ const ClubManager: React.FC<ClubManagerProps> = ({ contestId }) => {
   };
 
   const handleDeleteOperator = async (clubId: number, opId: number) => {
-    await fetch(
-      `/api/contests/${contestId}/clubs/${clubId}/operators/${opId}`,
-      { method: 'DELETE' }
-    );
+    await fetch(`/api/operators/${opId}`, { method: 'DELETE' });
     await fetchOperators(clubId);
   };
 
@@ -178,22 +174,23 @@ const ClubManager: React.FC<ClubManagerProps> = ({ contestId }) => {
           />
         </div>
         <div style={{ width: 130 }}>
-          <label style={labelStyle}>Callsign</label>
+          <label style={labelStyle}>Callsign *</label>
           <input
             style={{ ...inputStyle, textTransform: 'uppercase' }}
             value={clubCallsign}
             onChange={(e) => setClubCallsign(e.target.value)}
             placeholder="W0QQQ"
+            required
             onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
             onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
           />
         </div>
         <button
           type="submit"
-          disabled={addingClub || !clubName.trim()}
+          disabled={addingClub || !clubName.trim() || !clubCallsign.trim()}
           style={{
             ...btnStyle,
-            opacity: addingClub || !clubName.trim() ? 0.5 : 1,
+            opacity: addingClub || !clubName.trim() || !clubCallsign.trim() ? 0.5 : 1,
           }}
           onMouseEnter={(e) =>
             (e.currentTarget.style.background = 'var(--accent)')

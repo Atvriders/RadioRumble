@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { useContestStore } from '../../stores/useContestStore';
+import { useWebSocketStore } from '../../stores/useWebSocketStore';
 
 function formatTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -8,7 +10,18 @@ function formatTime(seconds: number): string {
 }
 
 export default function Header() {
-  const { activeContest, elapsed, remaining, status } = useContestStore();
+  const { activeContest, contests, elapsed, remaining, status, fetchContests, setActiveContest } = useContestStore();
+  const connected = useWebSocketStore((s) => s.connected);
+
+  useEffect(() => {
+    fetchContests().then(() => {
+      const current = useContestStore.getState();
+      if (!current.activeContest && current.contests.length > 0) {
+        const active = current.contests.find((c) => c.status === 'active') ?? current.contests[0];
+        setActiveContest(active);
+      }
+    });
+  }, [fetchContests, setActiveContest]);
 
   return (
     <header className="header-mobile" style={styles.header}>
@@ -59,9 +72,12 @@ export default function Header() {
         <span
           style={{
             ...styles.dot,
-            background: '#4ade80', // default green; swap to #ef4444 when disconnected
+            background: connected ? '#4ade80' : '#ef4444',
+            boxShadow: connected
+              ? '0 0 6px rgba(74,222,128,0.5)'
+              : '0 0 6px rgba(239,68,68,0.5)',
           }}
-          title="Connected"
+          title={connected ? 'Connected' : 'Disconnected'}
         />
         <span className="header-badge" style={styles.badge}>KSU</span>
       </div>

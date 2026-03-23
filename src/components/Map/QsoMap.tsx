@@ -1,23 +1,30 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Polyline, Tooltip } from 'react-leaflet';
 import { useContestStore } from '../../stores/useContestStore';
-import { gridToLatLon } from '../../utils/gridToLatLon';
 import { greatCirclePoints } from './GreatCircle';
 
-interface MapStation {
-  callsign: string;
-  my_gridsquare: string;
-}
-
-interface MapContact {
-  callsign: string;
+/** Shape returned by /api/contests/:contestId/map-data (flat array) */
+interface RawQso {
+  station_callsign: string;
+  call: string;
+  band: string;
   gridsquare: string;
   my_gridsquare: string;
+  coordinates: { lat: number; lng: number } | null;
+  stationCoordinates: { lat: number; lng: number } | null;
 }
 
-interface MapData {
-  stations: MapStation[];
-  contacts: MapContact[];
+interface StationPos {
+  callsign: string;
+  pos: { lat: number; lng: number };
+}
+
+interface ContactPos {
+  callsign: string;
+  band: string;
+  gridsquare: string;
+  pos: { lat: number; lng: number };
+  stationPos: { lat: number; lng: number } | null;
 }
 
 const DARK_TILES = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
@@ -32,7 +39,7 @@ const DEFAULT_ZOOM = typeof window !== 'undefined' && window.innerWidth <= 768 ?
 
 export default function QsoMap() {
   const activeContest = useContestStore((s) => s.activeContest);
-  const [mapData, setMapData] = useState<MapData>({ stations: [], contacts: [] });
+  const [rawQsos, setRawQsos] = useState<RawQso[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,8 +50,8 @@ export default function QsoMap() {
       try {
         const res = await fetch(`/api/contests/${activeContest.id}/map-data`);
         if (res.ok) {
-          const data: MapData = await res.json();
-          setMapData(data);
+          const data: RawQso[] = await res.json();
+          setRawQsos(data);
         }
       } catch {
         // silently fail
@@ -56,28 +63,37 @@ export default function QsoMap() {
     fetchData();
   }, [activeContest]);
 
-  // Resolve station grid positions
-  const stationPositions = mapData.stations
-    .map((s) => ({ ...s, pos: gridToLatLon(s.my_gridsquare) }))
-    .filter((s) => s.pos !== null) as (MapStation & { pos: { lat: number; lng: number } })[];
+  // Derive unique stations and contacts from the flat QSO array
+  const { stationPositions, contactsWithPos } = useMemo(() => {
+    const stationMap = new Map<string, StationPos>();
+    const contacts: ContactPos[] = [];
 
-  // Build a lookup for station positions by grid
-  const stationByGrid = new Map<string, { lat: number; lng: number }>();
-  stationPositions.forEach((s) => {
-    stationByGrid.set(s.my_gridsquare.toUpperCase(), s.pos);
-  });
+    for (const qso of rawQsos) {
+      // Collect unique stations by callsign
+      if (qso.stationCoordinates && !stationMap.has(qso.station_callsign)) {
+        stationMap.set(qso.station_callsign, {
+          callsign: qso.station_callsign,
+          pos: qso.stationCoordinates,
+        });
+      }
 
-  // Resolve contact positions and paths
-  const contactsWithPos = mapData.contacts
-    .map((c) => ({
-      ...c,
-      pos: gridToLatLon(c.gridsquare),
-      stationPos: stationByGrid.get(c.my_gridsquare.toUpperCase()) || null,
-    }))
-    .filter((c) => c.pos !== null) as (MapContact & {
-      pos: { lat: number; lng: number };
-      stationPos: { lat: number; lng: number } | null;
-    })[];
+      // Collect contacts
+      if (qso.coordinates) {
+        contacts.push({
+          callsign: qso.call,
+          band: qso.band,
+          gridsquare: qso.gridsquare,
+          pos: qso.coordinates,
+          stationPos: qso.stationCoordinates || null,
+        });
+      }
+    }
+
+    return {
+      stationPositions: Array.from(stationMap.values()),
+      contactsWithPos: contacts,
+    };
+  }, [rawQsos]);
 
   if (!activeContest) {
     return (
@@ -125,7 +141,7 @@ export default function QsoMap() {
             radius={3}
             pathOptions={{ color: GOLD, fillColor: GOLD, fillOpacity: 0.7, weight: 0 }}
           >
-            <Tooltip>{c.callsign} ({c.gridsquare})</Tooltip>
+            <Tooltip>{c.callsign} ({c.gridsquare}) {c.band}</Tooltip>
           </CircleMarker>
         ))}
 

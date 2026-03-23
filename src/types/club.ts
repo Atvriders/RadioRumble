@@ -4,6 +4,7 @@ export interface Club {
   callsign?: string;
   contestId: number;
   createdAt: string;
+  operators?: Operator[];
 }
 
 export interface Operator {

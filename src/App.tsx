@@ -1,26 +1,21 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Header from './components/Layout/Header';
 import Nav from './components/Layout/Nav';
-// import { useWebSocket } from './hooks/useWebSocket';
-// import { useContestStore } from './stores/useContestStore';
-
-// Page placeholders until real pages are built
-function Scoreboard() {
-  return <div style={{ padding: 24 }}>Scoreboard</div>;
-}
-function QsoMap() {
-  return <div style={{ padding: 24 }}>QSO Map</div>;
-}
-function Stats() {
-  return <div style={{ padding: 24 }}>Stats</div>;
-}
-function ContestManager() {
-  return <div style={{ padding: 24 }}>Contest Manager</div>;
-}
+import Scoreboard from './components/Scoreboard/Scoreboard';
+import QsoMap from './components/Map/QsoMap';
+import StatsDashboard from './components/Stats/StatsDashboard';
+import ContestManager from './components/Contest/ContestManager';
+import { useWebSocket } from './hooks/useWebSocket';
+import { useContestStore } from './stores/useContestStore';
 
 export default function App() {
-  // const { activeContest } = useContestStore();
-  // useWebSocket(activeContest?.id ?? null);
+  const { activeContest, fetchContests } = useContestStore();
+  useWebSocket(activeContest?.id ?? null);
+
+  useEffect(() => {
+    fetchContests();
+  }, [fetchContests]);
 
   return (
     <BrowserRouter>
@@ -39,7 +34,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Scoreboard />} />
             <Route path="/map" element={<QsoMap />} />
-            <Route path="/stats" element={<Stats />} />
+            <Route path="/stats" element={<StatsDashboard />} />
             <Route path="/manage" element={<ContestManager />} />
           </Routes>
         </main>
