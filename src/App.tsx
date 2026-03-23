@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Header from './components/Layout/Header';
 import Nav from './components/Layout/Nav';
 import Scoreboard from './components/Scoreboard/Scoreboard';
-import QsoMap from './components/Map/QsoMap';
+import MapPage from './components/Map/MapPage';
 import StatsDashboard from './components/Stats/StatsDashboard';
 import ContestManager from './components/Contest/ContestManager';
 import { useWebSocket } from './hooks/useWebSocket';
@@ -33,7 +33,7 @@ export default function App() {
         <main className="main-content" style={{ flex: 1, overflowY: 'auto' }}>
           <Routes>
             <Route path="/" element={<Scoreboard />} />
-            <Route path="/map" element={<QsoMap />} />
+            <Route path="/map" element={<MapPage />} />
             <Route path="/stats" element={<StatsDashboard />} />
             <Route path="/manage" element={<ContestManager />} />
           </Routes>
