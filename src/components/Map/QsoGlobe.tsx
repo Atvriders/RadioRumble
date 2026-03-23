@@ -49,12 +49,33 @@ interface GlobeLabel {
   text: string;
   size: number;
   color: string;
+  priority: 1 | 2 | 3 | 4;
+  kind: 'country' | 'state';
 }
 
 const COUNTRY_LABEL_COLOR = 'rgba(231, 222, 208, 0.5)';
 const STATE_LABEL_COLOR = 'rgba(231, 222, 208, 0.3)';
 
-const COUNTRY_LABELS: GlobeLabel[] = [
+// Priority 1: Large countries visible from far out
+// Priority 2: Medium countries visible at mid-zoom
+// Priority 3: Small countries visible when closer
+const MAJOR_COUNTRIES = new Set([
+  'USA', 'CANADA', 'RUSSIA', 'CHINA', 'BRAZIL', 'AUSTRALIA', 'INDIA',
+]);
+
+const MEDIUM_COUNTRIES = new Set([
+  'UK', 'FRANCE', 'GERMANY', 'JAPAN', 'MEXICO', 'ARGENTINA', 'INDONESIA',
+  'SOUTH AFRICA', 'SAUDI ARABIA', 'IRAN', 'EGYPT', 'NIGERIA', 'TURKEY',
+  'SPAIN', 'ITALY', 'S. KOREA', 'PAKISTAN', 'COLOMBIA', 'PERU', 'CHILE',
+]);
+
+function countryPriority(name: string): 1 | 2 | 3 {
+  if (MAJOR_COUNTRIES.has(name)) return 1;
+  if (MEDIUM_COUNTRIES.has(name)) return 2;
+  return 3;
+}
+
+const COUNTRY_LABELS_RAW: Omit<GlobeLabel, 'priority' | 'kind'>[] = [
   { lat: 39.8, lng: -98.5, text: 'USA', size: 0.7, color: COUNTRY_LABEL_COLOR },
   { lat: 56.1, lng: -106.3, text: 'CANADA', size: 0.7, color: COUNTRY_LABEL_COLOR },
   { lat: 23.6, lng: -102.5, text: 'MEXICO', size: 0.7, color: COUNTRY_LABEL_COLOR },
@@ -107,6 +128,12 @@ const COUNTRY_LABELS: GlobeLabel[] = [
   { lat: -6.4, lng: 34.9, text: 'TANZANIA', size: 0.7, color: COUNTRY_LABEL_COLOR },
 ];
 
+const COUNTRY_LABELS: GlobeLabel[] = COUNTRY_LABELS_RAW.map((c) => ({
+  ...c,
+  priority: countryPriority(c.text),
+  kind: 'country' as const,
+}));
+
 const US_STATE_LABELS: GlobeLabel[] = [
   { lat: 32.32, lng: -86.90, text: 'AL', size: 0.35, color: STATE_LABEL_COLOR },
   { lat: 63.35, lng: -152.0, text: 'AK', size: 0.35, color: STATE_LABEL_COLOR },
@@ -158,9 +185,9 @@ const US_STATE_LABELS: GlobeLabel[] = [
   { lat: 38.60, lng: -80.45, text: 'WV', size: 0.35, color: STATE_LABEL_COLOR },
   { lat: 43.78, lng: -88.79, text: 'WI', size: 0.35, color: STATE_LABEL_COLOR },
   { lat: 43.08, lng: -107.29, text: 'WY', size: 0.35, color: STATE_LABEL_COLOR },
-];
+].map((s) => ({ ...s, priority: 4 as const, kind: 'state' as const }));
 
-const GLOBE_LABELS: GlobeLabel[] = [...COUNTRY_LABELS, ...US_STATE_LABELS];
+const ALL_LABELS: GlobeLabel[] = [...COUNTRY_LABELS, ...US_STATE_LABELS];
 
 const COUNTRY_STROKE_COLOR = 'rgba(81, 40, 136, 0.4)';
 const STATE_STROKE_COLOR = 'rgba(81, 40, 136, 0.25)';
@@ -170,6 +197,20 @@ const COUNTRIES_GEOJSON_URL =
 const US_STATES_GEOJSON_URL =
   'https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json';
 
+/**
+ * Determine the max priority level to show at a given altitude.
+ *   altitude > 3.0  → only priority 1 (major countries)
+ *   1.5 – 3.0       → priority 1–2 (all countries worth showing at mid-zoom)
+ *   0.8 – 1.5       → priority 1–3 (all countries + approaching state level)
+ *   < 0.8           → priority 1–4 (everything, including US states)
+ */
+function maxVisiblePriority(altitude: number): number {
+  if (altitude > 3.0) return 1;
+  if (altitude > 1.5) return 2;
+  if (altitude > 0.8) return 3;
+  return 4;
+}
+
 export default function QsoGlobe() {
   const activeContest = useContestStore((s) => s.activeContest);
   const [rawQsos, setRawQsos] = useState<RawQso[]>([]);
@@ -177,6 +218,9 @@ export default function QsoGlobe() {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<GlobeInstance | undefined>(undefined);
+
+  // Track current zoom altitude for dynamic label filtering/sizing
+  const [altitude, setAltitude] = useState(2.2);
 
   // Boundary polygon features (countries + US states combined)
   const [polygonFeatures, setPolygonFeatures] = useState<GeoFeature[]>([]);
@@ -238,7 +282,7 @@ export default function QsoGlobe() {
     fetchBoundaries();
   }, []);
 
-  // Set initial view when globe mounts
+  // Set initial view when globe mounts and attach camera controls listener
   const handleGlobeReady = useCallback(() => {
     const globe = globeRef.current;
     if (!globe) return;
@@ -249,6 +293,41 @@ export default function QsoGlobe() {
     if (scene) {
       scene.background = null; // transparent
     }
+
+    // Listen to Three.js camera control changes to track altitude
+    try {
+      const controls = globe.controls();
+      controls.addEventListener('change', () => {
+        const pov = globe.pointOfView();
+        if (pov && typeof pov.altitude === 'number') {
+          setAltitude(pov.altitude);
+        }
+      });
+    } catch {
+      // Fallback: poll altitude on an interval if controls() isn't available
+      const interval = setInterval(() => {
+        try {
+          const pov = globe.pointOfView();
+          if (pov && typeof pov.altitude === 'number') {
+            setAltitude(pov.altitude);
+          }
+        } catch {
+          // ignore
+        }
+      }, 200);
+      // Store cleanup ref — will be cleaned up when component unmounts
+      (globe as any).__altitudePollInterval = interval;
+    }
+  }, []);
+
+  // Clean up polling interval on unmount
+  useEffect(() => {
+    return () => {
+      const globe = globeRef.current;
+      if (globe && (globe as any).__altitudePollInterval) {
+        clearInterval((globe as any).__altitudePollInterval);
+      }
+    };
   }, []);
 
   // Fetch QSO data
@@ -319,6 +398,28 @@ export default function QsoGlobe() {
     };
   }, [rawQsos]);
 
+  // Filter and dynamically size labels based on current altitude
+  const visibleLabels = useMemo(() => {
+    const maxPriority = maxVisiblePriority(altitude);
+
+    return ALL_LABELS
+      .filter((label) => label.priority <= maxPriority)
+      .map((label) => {
+        // Dynamic size: scale inversely with altitude
+        let dynamicSize: number;
+        if (label.kind === 'country') {
+          dynamicSize = Math.max(0.3, Math.min(1.2, 2.0 / altitude));
+        } else {
+          dynamicSize = Math.max(0.15, Math.min(0.6, 1.0 / altitude));
+        }
+
+        return {
+          ...label,
+          size: dynamicSize,
+        };
+      });
+  }, [altitude]);
+
   // Polygon stroke color callback — countries vs states
   const getPolygonStrokeColor = useCallback((d: object) => {
     const feature = d as GeoFeature;
@@ -386,8 +487,8 @@ export default function QsoGlobe() {
           polygonStrokeColor={getPolygonStrokeColor}
           polygonAltitude={0.005}
           polygonsTransitionDuration={0}
-          // Labels
-          labelsData={GLOBE_LABELS}
+          // Labels — dynamically filtered and sized based on zoom altitude
+          labelsData={visibleLabels}
           labelLat="lat"
           labelLng="lng"
           labelText="text"
