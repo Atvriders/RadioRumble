@@ -4,18 +4,19 @@ import { useWebSocketStore } from '../stores/useWebSocketStore';
 const RECONNECT_DELAY = 3000;
 
 export function useWebSocket(contestId: number | null) {
-  const { connect, disconnect, connected } = useWebSocketStore();
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const connected = useWebSocketStore((s) => s.connected);
 
   useEffect(() => {
     if (contestId === null) return;
 
+    const { connect, disconnect } = useWebSocketStore.getState();
     connect(contestId);
 
     const unsubscribe = useWebSocketStore.subscribe((state, prev) => {
       if (prev.connected && !state.connected) {
         reconnectTimer.current = setTimeout(() => {
-          connect(contestId);
+          useWebSocketStore.getState().connect(contestId);
         }, RECONNECT_DELAY);
       }
     });
@@ -26,9 +27,9 @@ export function useWebSocket(contestId: number | null) {
         clearTimeout(reconnectTimer.current);
         reconnectTimer.current = null;
       }
-      disconnect();
+      useWebSocketStore.getState().disconnect();
     };
-  }, [contestId, connect, disconnect]);
+  }, [contestId]);
 
   return { connected };
 }

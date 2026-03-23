@@ -24,9 +24,15 @@ export const useContestStore = create<ContestState>((set) => ({
   status: 'pending',
 
   fetchContests: async () => {
-    const res = await fetch('/api/contests');
-    const contests: Contest[] = await res.json();
-    set({ contests });
+    try {
+      const res = await fetch('/api/contests');
+      if (!res.ok) return;
+      const contests: Contest[] = await res.json();
+      const active = contests.find(c => c.status === 'active') || contests[0] || null;
+      set({ contests, activeContest: active, status: active?.status || 'pending' });
+    } catch {
+      // API not available yet
+    }
   },
 
   createContest: async (contest) => {

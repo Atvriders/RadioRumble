@@ -10,12 +10,12 @@ import { useWebSocket } from './hooks/useWebSocket';
 import { useContestStore } from './stores/useContestStore';
 
 export default function App() {
-  const { activeContest, fetchContests } = useContestStore();
+  const activeContest = useContestStore((s) => s.activeContest);
   useWebSocket(activeContest?.id ?? null);
 
   useEffect(() => {
-    fetchContests();
-  }, [fetchContests]);
+    useContestStore.getState().fetchContests();
+  }, []);
 
   return (
     <BrowserRouter>
