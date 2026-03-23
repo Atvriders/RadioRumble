@@ -58,6 +58,7 @@ const Scoreboard: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Contest Header */}
       <div
+        className="scoreboard-header-mobile"
         style={{
           background: 'var(--bg-card)',
           border: '1px solid var(--border)',
@@ -401,6 +402,20 @@ const Scoreboard: React.FC = () => {
         @keyframes pulse-dot {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.3; }
+        }
+        @media (max-width: 768px) {
+          .scoreboard-header-mobile h1 {
+            font-size: 16px !important;
+          }
+          .scoreboard-header-mobile > div:last-child {
+            gap: 12px !important;
+          }
+          .scoreboard-header-mobile > div:last-child > div > div:first-child {
+            font-size: 9px !important;
+          }
+          .scoreboard-header-mobile > div:last-child > div > div:last-child {
+            font-size: 16px !important;
+          }
         }
       `}</style>
     </div>

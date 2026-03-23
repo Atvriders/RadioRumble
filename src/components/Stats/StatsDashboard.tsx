@@ -84,7 +84,7 @@ export default function StatsDashboard() {
 
   return (
     <div style={styles.container}>
-      <div style={styles.grid}>
+      <div className="stats-grid-mobile" style={styles.grid}>
         <Card title="QSOs Over Time">
           <RateChart data={stats?.rate || []} />
         </Card>
@@ -142,3 +142,21 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 16,
   },
 };
+
+// Mobile style injection
+if (typeof document !== 'undefined') {
+  const styleId = 'stats-mobile-styles';
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      @media (max-width: 768px) {
+        .stats-grid-mobile {
+          grid-template-columns: 1fr !important;
+          gap: 14px !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}

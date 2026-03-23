@@ -45,6 +45,7 @@ const ScoreRow: React.FC<ScoreRowProps> = ({ rank, station, isLeader }) => {
 
       {/* Callsign */}
       <td
+        className="score-callsign"
         style={{
           padding: '10px 12px',
           fontWeight: 700,
@@ -70,7 +71,7 @@ const ScoreRow: React.FC<ScoreRowProps> = ({ rank, station, isLeader }) => {
           whiteSpace: 'nowrap',
         }}
       >
-        {station.clubName || '—'}
+        {station.clubName || '\u2014'}
       </td>
 
       {/* QSOs */}
@@ -101,12 +102,12 @@ const ScoreRow: React.FC<ScoreRowProps> = ({ rank, station, isLeader }) => {
         {station.totalPoints.toLocaleString()}
       </td>
 
-      {/* Band Breakdown */}
+      {/* Band Breakdown — hidden on mobile via CSS nth-child(6) rule */}
       <td style={{ padding: '10px 12px' }}>
         <BandBreakdown bands={station.bands} />
       </td>
 
-      {/* Rate */}
+      {/* Rate — hidden on mobile via CSS nth-child(7) rule */}
       <td
         style={{
           padding: '10px 12px',
@@ -128,7 +129,7 @@ const ScoreRow: React.FC<ScoreRowProps> = ({ rank, station, isLeader }) => {
             textAlign: 'right',
           }}
         >
-          {station.rate > 0 ? `${station.rate}/h` : '—'}
+          {station.rate > 0 ? `${station.rate}/h` : '\u2014'}
         </span>
       </td>
     </tr>

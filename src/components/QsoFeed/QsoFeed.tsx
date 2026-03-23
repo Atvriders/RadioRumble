@@ -135,6 +135,7 @@ const QsoFeed: React.FC = () => {
             return (
               <div
                 key={qso.id}
+                className="qso-entry-mobile"
                 style={{
                   padding: '8px 16px',
                   borderBottom: '1px solid var(--border)',
@@ -281,6 +282,13 @@ const QsoFeed: React.FC = () => {
         @keyframes qso-flash {
           0% { background: rgba(244,197,92,0.25); }
           100% { background: transparent; }
+        }
+        @media (max-width: 768px) {
+          .qso-entry-mobile {
+            padding: 6px 10px !important;
+            gap: 6px !important;
+            font-size: 12px !important;
+          }
         }
       `}</style>
     </div>

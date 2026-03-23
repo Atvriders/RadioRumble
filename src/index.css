@@ -150,3 +150,89 @@ tr:hover td {
   white-space: nowrap;
   border: 0;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   Mobile Responsive — max-width 768px
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  body {
+    font-size: 13px;
+    overflow-x: hidden;
+  }
+
+  /* Tables scroll horizontally */
+  .table-scroll-wrapper,
+  div[style*="overflowX"] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 0;
+  }
+
+  th {
+    padding: 8px 8px;
+    font-size: 10px;
+  }
+
+  td {
+    padding: 8px 8px;
+    font-size: 13px;
+  }
+
+  /* Hide Bands and Rate columns on mobile */
+  th:nth-child(6),
+  td:nth-child(6),
+  th:nth-child(7),
+  td:nth-child(7) {
+    display: none;
+  }
+
+  /* Header mobile */
+  .header-mobile {
+    height: 44px !important;
+    padding: 0 12px !important;
+  }
+
+  /* Nav bottom bar */
+  .nav-mobile-bottom {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 100 !important;
+    border-top: 1px solid var(--border) !important;
+    border-bottom: none !important;
+  }
+
+  /* Stats single column */
+  .stats-grid-mobile {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Contest manager single column */
+  .manage-grid-mobile {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* QSO feed compact */
+  .qso-entry-mobile {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+    gap: 6px !important;
+  }
+
+  /* Scoreboard header compact */
+  .scoreboard-header-mobile {
+    padding: 12px 14px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  /* Map full width */
+  .map-container-mobile {
+    width: 100% !important;
+    border-radius: 0 !important;
+  }
+}

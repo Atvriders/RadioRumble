@@ -28,7 +28,7 @@ const GOLD = '#F4C55C';
 
 // Center on Kansas (KSU area)
 const DEFAULT_CENTER: [number, number] = [39.0, -96.5];
-const DEFAULT_ZOOM = 4;
+const DEFAULT_ZOOM = typeof window !== 'undefined' && window.innerWidth <= 768 ? 3 : 4;
 
 export default function QsoMap() {
   const activeContest = useContestStore((s) => s.activeContest);
@@ -88,7 +88,7 @@ export default function QsoMap() {
   }
 
   return (
-    <div style={styles.container}>
+    <div className="map-container-mobile" style={styles.container}>
       {loading && <div style={styles.loading}>Loading map data...</div>}
       <MapContainer
         center={DEFAULT_CENTER}

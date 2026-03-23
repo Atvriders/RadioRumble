@@ -9,25 +9,48 @@ const tabs = [
 
 export default function Nav() {
   return (
-    <nav style={styles.nav}>
-      <ul style={styles.list}>
+    <nav className="nav-mobile-bottom" style={styles.nav}>
+      <ul className="nav-list" style={styles.list}>
         {tabs.map((tab) => (
           <li key={tab.to} style={styles.item}>
             <NavLink
               to={tab.to}
               end={tab.to === '/'}
+              className="nav-link"
               style={({ isActive }) => ({
                 ...styles.link,
                 color: isActive ? '#F4C55C' : '#E7DED0',
                 borderBottomColor: isActive ? '#F4C55C' : 'transparent',
               })}
             >
-              <span style={styles.icon}>{tab.icon}</span>
-              <span>{tab.label}</span>
+              <span className="nav-icon" style={styles.icon}>{tab.icon}</span>
+              <span className="nav-label">{tab.label}</span>
             </NavLink>
           </li>
         ))}
       </ul>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .nav-list {
+            justify-content: space-around !important;
+            gap: 0 !important;
+          }
+          .nav-link {
+            flex-direction: column !important;
+            padding: 6px 10px !important;
+            font-size: 11px !important;
+            gap: 2px !important;
+            border-bottom: none !important;
+          }
+          .nav-icon {
+            font-size: 18px !important;
+          }
+          .nav-label {
+            font-size: 10px !important;
+          }
+        }
+      `}</style>
     </nav>
   );
 }

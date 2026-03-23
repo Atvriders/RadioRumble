@@ -146,6 +146,7 @@ const ContestManager: React.FC = () => {
   /* ── render ── */
   return (
     <div
+      className="manage-grid-mobile"
       style={{
         display: 'grid',
         gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)',
@@ -405,3 +406,22 @@ const ContestManager: React.FC = () => {
 };
 
 export default ContestManager;
+
+// Mobile style injection
+if (typeof document !== 'undefined') {
+  const styleId = 'manage-mobile-styles';
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      @media (max-width: 768px) {
+        .manage-grid-mobile {
+          grid-template-columns: 1fr !important;
+          padding: 14px !important;
+          gap: 16px !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}

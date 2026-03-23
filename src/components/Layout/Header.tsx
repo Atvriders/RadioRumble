@@ -11,19 +11,19 @@ export default function Header() {
   const { activeContest, elapsed, remaining, status } = useContestStore();
 
   return (
-    <header style={styles.header}>
+    <header className="header-mobile" style={styles.header}>
       {/* Left — branding */}
       <div style={styles.left}>
         <span style={styles.icon}>&#x26A1;</span>
-        <span style={styles.title}>RADIORUMBLE</span>
+        <span className="header-title" style={styles.title}>RADIORUMBLE</span>
       </div>
 
-      {/* Center — contest info */}
-      <div style={styles.center}>
+      {/* Center — contest info (hidden on very small screens via CSS) */}
+      <div className="header-center" style={styles.center}>
         {activeContest ? (
           <>
             <span style={styles.contestName}>{activeContest.name}</span>
-            <span style={styles.timer}>
+            <span className="header-timer" style={styles.timer}>
               {status === 'active' && (
                 <>
                   <span style={styles.timerLabel}>ELAPSED</span>
@@ -63,8 +63,31 @@ export default function Header() {
           }}
           title="Connected"
         />
-        <span style={styles.badge}>KSU</span>
+        <span className="header-badge" style={styles.badge}>KSU</span>
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .header-center {
+            display: none !important;
+          }
+          .header-title {
+            font-size: 14px !important;
+          }
+          .header-badge {
+            font-size: 11px !important;
+            padding: 1px 6px !important;
+          }
+        }
+        @media (min-width: 481px) and (max-width: 768px) {
+          .header-center {
+            display: flex !important;
+          }
+          .header-timer {
+            display: none !important;
+          }
+        }
+      `}</style>
     </header>
   );
 }

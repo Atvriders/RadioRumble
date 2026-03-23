@@ -25,6 +25,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <div
+        className="app-shell"
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -34,7 +35,7 @@ export default function App() {
       >
         <Header />
         <Nav />
-        <main style={{ flex: 1, overflowY: 'auto' }}>
+        <main className="main-content" style={{ flex: 1, overflowY: 'auto' }}>
           <Routes>
             <Route path="/" element={<Scoreboard />} />
             <Route path="/map" element={<QsoMap />} />
@@ -43,6 +44,18 @@ export default function App() {
           </Routes>
         </main>
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .app-shell {
+            height: 100vh !important;
+            height: 100dvh !important;
+          }
+          .main-content {
+            padding-bottom: 56px !important;
+          }
+        }
+      `}</style>
     </BrowserRouter>
   );
 }
